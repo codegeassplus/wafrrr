@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>مشغل البث-- المباشر</title>
+    <title>مشغل البث المباشر</title>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 
@@ -54,14 +54,13 @@
             position: relative;
             width: 100%;
             aspect-ratio: 16 / 9;
-
             background: #000;
             border-radius: 18px;
             overflow: hidden;
 
             box-shadow:
-                0 20px 60px rgba(0, 0, 0, .55),
-                0 0 0 1px rgba(255, 255, 255, .08);
+                0 20px 60px rgba(0,0,0,.55),
+                0 0 0 1px rgba(255,255,255,.08);
         }
 
         video {
@@ -81,7 +80,7 @@
             align-items: center;
             justify-content: center;
 
-            background: rgba(0, 0, 0, .72);
+            background: rgba(0,0,0,.72);
             z-index: 5;
 
             transition: opacity .3s;
@@ -96,10 +95,11 @@
             width: 45px;
             height: 45px;
 
-            border: 4px solid rgba(255, 255, 255, .2);
+            border: 4px solid rgba(255,255,255,.2);
             border-top-color: #fff;
 
             border-radius: 50%;
+
             animation: spin .8s linear infinite;
 
             margin-bottom: 15px;
@@ -115,10 +115,11 @@
             margin-top: 15px;
             padding: 12px 15px;
 
-            background: rgba(255, 255, 255, .06);
-            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.08);
 
             border-radius: 12px;
+
             text-align: center;
 
             color: #cbd5e1;
@@ -158,7 +159,7 @@
 <div class="container">
 
     <div class="header">
-        <h1>📺 -  ---البث المباشر</h1>
+        <h1>📺 البث المباشر</h1>
         <p>مشغل HLS سريع ومتوافق مع مختلف الشاشات</p>
     </div>
 
@@ -172,8 +173,13 @@
         </video>
 
         <div class="loading" id="loading">
+
             <div class="spinner" id="spinner"></div>
-            <div id="loadingText">جاري الاتصال بالبث...</div>
+
+            <div id="loadingText">
+                جاري الاتصال بالبث...
+            </div>
+
         </div>
 
     </div>
@@ -191,490 +197,427 @@
 
 <script>
 
-    const video = document.getElementById("video");
-    const loading = document.getElementById("loading");
-    const loadingText = document.getElementById("loadingText");
-    const status = document.getElementById("status");
-    const spinner = document.getElementById("spinner");
+const video =
+    document.getElementById("video");
 
-    /*
-     * رابط الـ Worker
-     */
-    const streamUrl =
+const loading =
+    document.getElementById("loading");
+
+const loadingText =
+    document.getElementById("loadingText");
+
+const status =
+    document.getElementById("status");
+
+const spinner =
+    document.getElementById("spinner");
+
+
+/*
+ * قراءة channel من الرابط
+ *
+ * مثال:
+ *
+ * s.html?channel=1340
+ */
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const channel =
+    params.get("channel");
+
+
+/*
+ * تحديد رابط البث
+ */
+let streamUrl = "";
+
+
+/*
+ * القناة 1340
+ */
+if (channel === "1340") {
+
+    streamUrl =
         "https://still-dust-c9ae.manon-lol2000.workers.dev/assets/res2/java2/1340.css?x=/hls/";
 
-    let hls = null;
-    let retryTimer = null;
-    let destroyed = false;
+}
 
 
-    function showLoading(text = "جاري الاتصال بالبث...") {
+/*
+ * في حالة عدم وجود قناة
+ */
+if (!streamUrl) {
 
-        loadingText.innerHTML = text;
+    spinner.style.display = "none";
 
-        spinner.style.display = "block";
+    loadingText.innerHTML =
+        "⚠️ رابط البث غير موجود";
 
-        loading.classList.remove("hidden");
+    status.innerHTML =
+        "لم يتم تحديد رابط البث";
+
+    status.classList.add("error");
+
+}
+
+
+/*
+ * HLS
+ */
+let hls = null;
+
+let retryTimer = null;
+
+let retryCount = 0;
+
+
+/*
+ * إظهار التحميل
+ */
+function showLoading(text) {
+
+    loadingText.innerHTML = text;
+
+    spinner.style.display = "block";
+
+    loading.classList.remove("hidden");
+
+}
+
+
+/*
+ * إخفاء التحميل
+ */
+function hideLoading() {
+
+    loading.classList.add("hidden");
+
+}
+
+
+/*
+ * خطأ
+ */
+function showError(message) {
+
+    spinner.style.display = "none";
+
+    loadingText.innerHTML =
+        "⚠️ " + message;
+
+    status.innerHTML =
+        message;
+
+    status.classList.add("error");
+
+    loading.classList.remove("hidden");
+
+}
+
+
+/*
+ * تشغيل HLS
+ */
+function startPlayer() {
+
+    if (!streamUrl) {
+        return;
     }
 
-
-    function hideLoading() {
-
-        loading.classList.add("hidden");
-    }
+    showLoading(
+        "جاري الاتصال بالبث..."
+    );
 
 
-    function showError(message) {
-
-        loading.classList.remove("hidden");
-
-        spinner.style.display = "none";
-
-        loadingText.innerHTML = "⚠️ " + message;
-
-        status.innerHTML = message;
-
-        status.classList.add("error");
-    }
-
-
-    function clearError() {
-
-        status.classList.remove("error");
-    }
-
-
-    function destroyHls() {
+    /*
+     * HLS.js
+     */
+    if (Hls.isSupported()) {
 
         if (hls) {
 
-            try {
-                hls.destroy();
-            } catch (e) {
-                console.log(e);
-            }
+            hls.destroy();
 
             hls = null;
-        }
-    }
 
-
-    function retryPlayer() {
-
-        if (destroyed) {
-            return;
         }
 
-        clearTimeout(retryTimer);
 
-        retryTimer = setTimeout(() => {
+        hls = new Hls({
 
-            console.log("إعادة محاولة تشغيل البث...");
+            enableWorker: true,
 
-            destroyHls();
+            liveSyncDurationCount: 3,
 
-            startPlayer();
+            liveMaxLatencyDurationCount: 6,
 
-        }, 3000);
-    }
+            maxBufferLength: 30,
 
+            maxMaxBufferLength: 60,
 
-    function startPlayer() {
+            backBufferLength: 30,
 
-        if (destroyed) {
-            return;
-        }
+            lowLatencyMode: false,
 
-        clearError();
+            manifestLoadingMaxRetry: 3,
 
-        showLoading("جاري الاتصال بالبث...");
+            manifestLoadingRetryDelay: 1000,
 
-        /*
-         * ==========================
-         * HLS.js
-         * ==========================
-         */
+            levelLoadingMaxRetry: 3,
 
-        if (Hls.isSupported()) {
+            levelLoadingRetryDelay: 1000,
 
-            destroyHls();
+            fragLoadingMaxRetry: 3,
 
-            hls = new Hls({
+            fragLoadingRetryDelay: 1000
 
-                enableWorker: true,
-
-                /*
-                 * إعدادات مناسبة للبث المباشر
-                 */
-                liveSyncDurationCount: 3,
-
-                liveMaxLatencyDurationCount: 6,
-
-                maxBufferLength: 30,
-
-                maxMaxBufferLength: 60,
-
-                backBufferLength: 30,
-
-                lowLatencyMode: false,
-
-                /*
-                 * إعادة المحاولة عند أخطاء الشبكة
-                 */
-                manifestLoadingMaxRetry: 5,
-
-                manifestLoadingRetryDelay: 1000,
-
-                levelLoadingMaxRetry: 5,
-
-                levelLoadingRetryDelay: 1000,
-
-                fragLoadingMaxRetry: 5,
-
-                fragLoadingRetryDelay: 1000
-
-            });
-
-
-            /*
-             * تحميل رابط البث
-             */
-            hls.loadSource(streamUrl);
-
-
-            /*
-             * ربط HLS بالفيديو
-             */
-            hls.attachMedia(video);
-
-
-            /*
-             * تم تحميل الـ Manifest
-             */
-            hls.on(
-                Hls.Events.MANIFEST_PARSED,
-                function () {
-
-                    console.log("HLS Manifest Loaded");
-
-                    status.innerHTML =
-                        "🟢 تم الاتصال بالبث";
-
-                    clearError();
-
-                    hideLoading();
-
-                    /*
-                     * محاولة التشغيل التلقائي
-                     */
-                    video.play().catch(() => {
-
-                        status.innerHTML =
-                            "🟢 البث جاهز - اضغط زر التشغيل";
-
-                    });
-
-                }
-            );
-
-
-            /*
-             * بدأ تشغيل الفيديو
-             */
-            hls.on(
-                Hls.Events.FRAG_LOADED,
-                function () {
-
-                    /*
-                     * لا نخفي شاشة التحميل إلا
-                     * بعد وصول أول جزء من البث
-                     */
-                }
-            );
-
-
-            /*
-             * معالجة أخطاء HLS
-             */
-            hls.on(
-                Hls.Events.ERROR,
-                function (event, data) {
-
-                    console.log("HLS Error:", data);
-
-                    if (!data.fatal) {
-                        return;
-                    }
-
-
-                    /*
-                     * خطأ في الشبكة
-                     */
-                    if (
-                        data.type ===
-                        Hls.ErrorTypes.NETWORK_ERROR
-                    ) {
-
-                        showError(
-                            "تعذر الاتصال بالبث، جاري إعادة المحاولة..."
-                        );
-
-                        /*
-                         * محاولة إعادة تحميل الشبكة
-                         */
-                        try {
-
-                            hls.startLoad();
-
-                        } catch (e) {
-
-                            retryPlayer();
-
-                        }
-
-                        return;
-                    }
-
-
-                    /*
-                     * خطأ في الفيديو
-                     */
-                    if (
-                        data.type ===
-                        Hls.ErrorTypes.MEDIA_ERROR
-                    ) {
-
-                        status.classList.remove("error");
-
-                        status.innerHTML =
-                            "🔄 محاولة إصلاح تشغيل الفيديو...";
-
-                        try {
-
-                            hls.recoverMediaError();
-
-                        } catch (e) {
-
-                            retryPlayer();
-
-                        }
-
-                        return;
-                    }
-
-
-                    /*
-                     * خطأ غير معروف
-                     */
-                    showError(
-                        "تعذر تشغيل البث، جاري إعادة المحاولة..."
-                    );
-
-                    retryPlayer();
-
-                }
-            );
-
-
-            /*
-             * أخطاء تحميل الـ Manifest
-             */
-            hls.on(
-                Hls.Events.MANIFEST_LOADING,
-                function () {
-
-                    console.log(
-                        "جاري تحميل HLS Manifest..."
-                    );
-
-                }
-            );
-
-
-            /*
-             * نجاح تحميل الـ Manifest
-             */
-            hls.on(
-                Hls.Events.MANIFEST_LOADED,
-                function () {
-
-                    console.log(
-                        "تم تحميل Manifest بنجاح"
-                    );
-
-                }
-            );
-
-        }
+        });
 
 
         /*
-         * ==========================
-         * Safari / Native HLS
-         * ==========================
+         * تحميل الرابط
          */
-
-        else if (
-            video.canPlayType(
-                "application/vnd.apple.mpegurl"
-            )
-        ) {
-
-            console.log(
-                "استخدام Native HLS"
-            );
-
-            video.src = streamUrl;
-
-
-            video.addEventListener(
-                "loadedmetadata",
-                function () {
-
-                    status.innerHTML =
-                        "🟢 تم الاتصال بالبث";
-
-                    clearError();
-
-                    hideLoading();
-
-                    video.play().catch(() => {
-
-                        status.innerHTML =
-                            "🟢 البث جاهز - اضغط زر التشغيل";
-
-                    });
-
-                },
-                { once: true }
-            );
-
-
-            video.addEventListener(
-                "error",
-                function () {
-
-                    showError(
-                        "تعذر تشغيل رابط البث"
-                    );
-
-                    retryPlayer();
-
-                },
-                { once: true }
-            );
-
-        }
+        hls.loadSource(streamUrl);
 
 
         /*
-         * المتصفح لا يدعم HLS
+         * ربط الفيديو
          */
-        else {
-
-            showError(
-                "المتصفح لا يدعم تشغيل HLS"
-            );
-
-        }
-
-    }
+        hls.attachMedia(video);
 
 
-    /*
-     * عند بدء التشغيل فعلياً
-     */
-    video.addEventListener(
-        "playing",
-        function () {
+        /*
+         * Manifest جاهز
+         */
+        hls.on(
+            Hls.Events.MANIFEST_PARSED,
+            function () {
 
-            hideLoading();
+                retryCount = 0;
 
-            clearError();
+                status.innerHTML =
+                    "🟢 تم الاتصال بالبث";
 
-            status.innerHTML =
-                "🟢 البث يعمل الآن";
+                status.classList.remove(
+                    "error"
+                );
 
-        }
-    );
-
-
-    /*
-     * عند توقف الفيديو مؤقتاً بسبب Buffer
-     */
-    video.addEventListener(
-        "waiting",
-        function () {
-
-            showLoading(
-                "جاري تحميل البث..."
-            );
-
-        }
-    );
-
-
-    /*
-     * عند استئناف التشغيل
-     */
-    video.addEventListener(
-        "canplay",
-        function () {
-
-            if (!video.paused) {
                 hideLoading();
-            }
-
-        }
-    );
 
 
-    /*
-     * في حالة حدوث خطأ بالفيديو
-     */
-    video.addEventListener(
-        "error",
-        function () {
+                video.play().catch(
+                    function () {
 
-            if (
-                video.error &&
-                video.error.code
-            ) {
+                        status.innerHTML =
+                            "🟢 البث جاهز - اضغط تشغيل";
 
-                console.log(
-                    "Video Error:",
-                    video.error
+                    }
                 );
 
             }
+        );
 
-        }
-    );
+
+        /*
+         * أخطاء HLS
+         */
+        hls.on(
+            Hls.Events.ERROR,
+            function (
+                event,
+                data
+            ) {
+
+                console.log(
+                    "HLS ERROR:",
+                    data
+                );
+
+
+                if (!data.fatal) {
+                    return;
+                }
+
+
+                /*
+                 * خطأ شبكة
+                 */
+                if (
+                    data.type ===
+                    Hls.ErrorTypes.NETWORK_ERROR
+                ) {
+
+                    retryCount++;
+
+
+                    if (retryCount <= 3) {
+
+                        status.innerHTML =
+                            "⚠️ تعذر الاتصال بالبث، جاري إعادة المحاولة...";
+
+
+                        setTimeout(
+                            function () {
+
+                                if (hls) {
+
+                                    hls.startLoad();
+
+                                }
+
+                            },
+                            2000
+                        );
+
+                    } else {
+
+                        showError(
+                            "تعذر الاتصال برابط البث"
+                        );
+
+                    }
+
+                    return;
+                }
+
+
+                /*
+                 * خطأ فيديو
+                 */
+                if (
+                    data.type ===
+                    Hls.ErrorTypes.MEDIA_ERROR
+                ) {
+
+                    status.innerHTML =
+                        "🔄 محاولة إصلاح الفيديو...";
+
+                    hls.recoverMediaError();
+
+                    return;
+                }
+
+
+                showError(
+                    "تعذر تشغيل البث"
+                );
+
+            }
+        );
+
+    }
 
 
     /*
-     * بدء المشغل
+     * Native HLS
      */
-    startPlayer();
+    else if (
+        video.canPlayType(
+            "application/vnd.apple.mpegurl"
+        )
+    ) {
+
+        video.src = streamUrl;
+
+        video.addEventListener(
+            "loadedmetadata",
+            function () {
+
+                status.innerHTML =
+                    "🟢 تم الاتصال بالبث";
+
+                hideLoading();
+
+                video.play().catch(
+                    function () {}
+                );
+
+            },
+            {
+                once: true
+            }
+        );
+
+    }
 
 
     /*
-     * تنظيف المشغل عند مغادرة الصفحة
+     * غير مدعوم
      */
-    window.addEventListener(
-        "beforeunload",
-        function () {
+    else {
 
-            destroyed = true;
+        showError(
+            "المتصفح لا يدعم HLS"
+        );
 
-            clearTimeout(retryTimer);
+    }
+}
 
-            destroyHls();
+
+/*
+ * تشغيل فعلي
+ */
+video.addEventListener(
+    "playing",
+    function () {
+
+        hideLoading();
+
+        status.classList.remove(
+            "error"
+        );
+
+        status.innerHTML =
+            "🟢 البث يعمل الآن";
+
+    }
+);
+
+
+/*
+ * انتظار Buffer
+ */
+video.addEventListener(
+    "waiting",
+    function () {
+
+        showLoading(
+            "جاري تحميل البث..."
+        );
+
+    }
+);
+
+
+/*
+ * بدء التشغيل
+ */
+startPlayer();
+
+
+/*
+ * تنظيف
+ */
+window.addEventListener(
+    "beforeunload",
+    function () {
+
+        if (hls) {
+
+            hls.destroy();
+
+            hls = null;
 
         }
-    );
+
+    }
+);
 
 </script>
 
 </body>
+
 </html>
