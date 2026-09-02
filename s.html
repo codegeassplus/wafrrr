@@ -1,469 +1,1317 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فاحص روابط البث</title>
 
-    <title>مشغل البث المباشر</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<style>
+*{box-sizing:border-box}
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+body{
+    margin:0;
+    background:#0d1016;
+    color:#fff;
+    font-family:Arial,sans-serif;
+}
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background:
-                radial-gradient(circle at top, #18233a 0%, #080b12 45%, #050608 100%);
-            color: white;
-            font-family: Arial, sans-serif;
+.container{
+    width:min(1400px,96%);
+    margin:20px auto;
+}
 
-            display: flex;
-            align-items: center;
-            justify-content: center;
+h1{
+    text-align:center;
+    margin:10px 0 20px;
+}
 
-            padding: 20px;
-        }
+.panel{
+    background:#171b24;
+    border:1px solid #292f3b;
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:18px;
+}
 
-        .container {
-            width: 100%;
-            max-width: 1100px;
-        }
+.panel h3{
+    margin-top:0;
+}
 
-        .header {
-            text-align: center;
-            margin-bottom: 18px;
-        }
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
 
-        .header h1 {
-            margin: 0 0 7px;
-            font-size: 25px;
-        }
+label{
+    display:block;
+    margin-bottom:5px;
+    color:#bbb;
+    font-size:13px;
+}
 
-        .header p {
-            margin: 0;
-            color: #9ca3af;
-            font-size: 14px;
-        }
+input{
+    width:100%;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid #343b48;
+    background:#0d1118;
+    color:white;
+    direction:ltr;
+}
 
-        .player-box {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
+.buttons{
+    margin-top:14px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
 
-            background: #000;
-            border-radius: 18px;
-            overflow: hidden;
+button{
+    border:0;
+    border-radius:8px;
+    padding:11px 17px;
+    cursor:pointer;
+    font-weight:bold;
+}
 
-            box-shadow:
-                0 20px 60px rgba(0,0,0,.55),
-                0 0 0 1px rgba(255,255,255,.08);
-        }
+.primary{
+    background:#ffd700;
+    color:#000;
+}
 
-        video {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #000;
-            object-fit: contain;
-        }
+.secondary{
+    background:#303746;
+    color:#fff;
+}
 
-        .loading {
-            position: absolute;
-            inset: 0;
+.success{
+    background:#168a52;
+    color:#fff;
+}
 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+.status{
+    padding:12px;
+    background:#171b24;
+    border-radius:9px;
+    margin-bottom:15px;
+    text-align:center;
+}
 
-            background: rgba(0,0,0,.72);
-            z-index: 5;
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:15px;
+}
 
-            transition: opacity .3s;
-        }
+.stat{
+    background:#171b24;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+}
 
-        .loading.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
+.stat strong{
+    display:block;
+    font-size:25px;
+    margin-top:5px;
+}
 
-        .spinner {
-            width: 45px;
-            height: 45px;
+.table-box{
+    overflow:auto;
+    border-radius:12px;
+    background:#171b24;
+}
 
-            border: 4px solid rgba(255,255,255,.2);
-            border-top-color: #fff;
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1100px;
+}
 
-            border-radius: 50%;
+th,td{
+    padding:11px;
+    border-bottom:1px solid #292f3b;
+    text-align:center;
+    vertical-align:middle;
+}
 
-            animation: spin .8s linear infinite;
+th{
+    background:#222733;
+}
 
-            margin-bottom: 15px;
-        }
+.url{
+    direction:ltr;
+    text-align:left;
+    max-width:420px;
+    word-break:break-all;
+    font-size:12px;
+    color:#aaa;
+}
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+.good{
+    color:#31db83;
+    font-weight:bold;
+}
 
-        .status {
-            margin-top: 15px;
-            padding: 12px 15px;
+.bad{
+    color:#ff5b63;
+    font-weight:bold;
+}
 
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.08);
+.wait{
+    color:#ffd700;
+}
 
-            border-radius: 12px;
+.copy{
+    background:#343b49;
+    color:#fff;
+    padding:7px 10px;
+    font-size:12px;
+}
 
-            text-align: center;
+.play{
+    background:#1769aa;
+    color:#fff;
+    padding:7px 10px;
+    font-size:12px;
+}
 
-            color: #cbd5e1;
-            font-size: 14px;
-        }
+.small{
+    font-size:12px;
+    color:#999;
+}
 
-        .error {
-            color: #ff6b6b;
-        }
+@media(max-width:700px){
+    .grid{
+        grid-template-columns:1fr;
+    }
 
-        .footer {
-            text-align: center;
-            margin-top: 14px;
-
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        @media (max-width: 600px) {
-
-            body {
-                padding: 10px;
-            }
-
-            .header h1 {
-                font-size: 20px;
-            }
-
-            .player-box {
-                border-radius: 12px;
-            }
-        }
-    </style>
-
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <div class="header">
+<h1>📡 فاحص روابط البث</h1>
 
-        <h1>
-            📺 البث المباشر
-        </h1>
+<div class="panel">
 
-        <p>
-            مشغل HLS سريع ومتوافق مع مختلف الشاشات
-        </p>
+<h3>⚙️ إعدادات الاتصال</h3>
 
-    </div>
+<div class="grid">
+
+<div>
+<label>Panel API</label>
+<input id="panelApi"
+value="https://panel.joaantv.workers.dev">
+</div>
+
+<div>
+<label>Network Key</label>
+<input id="networkKey"
+value="barq_44">
+</div>
+
+<div>
+<label>Oscar API</label>
+<input id="oscarApi"
+value="https://os-tv.joaantv.workers.dev/api/private/call">
+</div>
+
+<div>
+<label>Oscar API Key - اختياري</label>
+<input id="oscarKey"
+placeholder="اتركه فارغاً إذا كان غير مطلوب">
+</div>
+
+</div>
+
+<div class="buttons">
+
+<button class="primary" onclick="loadChannels()">
+🔄 جلب القنوات
+</button>
+
+<button class="secondary" onclick="checkAll()">
+🔍 فحص جميع الروابط
+</button>
+
+<button class="secondary" onclick="loadAndCheck()">
+⚡ جلب وفحص مباشرة
+</button>
+
+</div>
+
+<p class="small">
+الصفحة تستخدم نفس منطق القنوات الموجود في mmm_fixed.html.
+يمكنك تغيير أي API أو مفتاح يدويًا.
+</p>
+
+</div>
 
 
-    <div class="player-box">
-
-        <video
-            id="video"
-            controls
-            playsinline
-            preload="auto">
-        </video>
+<div id="status" class="status">
+جاهز
+</div>
 
 
-        <div
-            class="loading"
-            id="loading">
+<div class="stats">
 
-            <div
-                class="spinner"
-                id="spinner">
-            </div>
+<div class="stat">
+القنوات
+<strong id="total">0</strong>
+</div>
 
-            <div id="loadingText">
-                جاري الاتصال بالبث...
-            </div>
+<div class="stat">
+الروابط
+<strong id="links">0</strong>
+</div>
 
-        </div>
+<div class="stat">
+يعمل
+<strong id="working">0</strong>
+</div>
 
-    </div>
+<div class="stat">
+متوقف
+<strong id="stopped">0</strong>
+</div>
 
-
-    <div
-        class="status"
-        id="status">
-
-        جاري تجهيز المشغل...
-
-    </div>
+</div>
 
 
-    <div class="footer">
-        HLS Live Player
-    </div>
+<div class="table-box">
+
+<table>
+
+<thead>
+
+<tr>
+<th>#</th>
+<th>القناة</th>
+<th>الجودة</th>
+<th>اسم السيرفر</th>
+<th>رابط البث</th>
+<th>الحالة</th>
+<th>الوقت</th>
+<th>إجراء</th>
+</tr>
+
+</thead>
+
+<tbody id="results">
+
+<tr>
+<td colspan="8">
+لم يتم جلب القنوات
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
 
 </div>
 
 
 <script>
 
-const video =
-    document.getElementById("video");
-
-const loading =
-    document.getElementById("loading");
-
-const loadingText =
-    document.getElementById("loadingText");
-
-const status =
-    document.getElementById("status");
-
-const spinner =
-    document.getElementById("spinner");
+let channels = [];
+let streams = [];
 
 
-/*
- * قراءة الرابط
- *
- * s.html?channel=1340
- */
+/* =========================
+   الإعدادات
+========================= */
 
-const params =
-    new URLSearchParams(
-        window.location.search
-    );
+function value(id){
+    return document.getElementById(id).value.trim();
+}
 
+function panelApi(){
+    return value("panelApi").replace(/\/+$/,"");
+}
 
-const channel =
-    params.get("channel");
+function networkKey(){
+    return value("networkKey");
+}
 
+function oscarApi(){
+    return value("oscarApi").replace(/\/+$/,"");
+}
 
-/*
- * رابط البث
- */
+function oscarKey(){
+    return value("oscarKey");
+}
 
-let streamUrl = "";
-
-
-/*
- * القناة 1340
- */
-
-if (channel === "1340") {
-
-    streamUrl =
-        "https://still-dust-c9ae.manon-lol2000.workers.dev/assets/res2/java2/1340.css?x=/hls/";
-
+function status(text){
+    document.getElementById("status").textContent = text;
 }
 
 
-/*
- * إذا لم يتم إرسال channel
- * نستخدم الرابط الافتراضي
- */
+/* =========================
+   استدعاء Oscar API
+========================= */
 
-if (!streamUrl) {
+async function apiCall(endpoint, params={}){
 
-    streamUrl =
-        "https://still-dust-c9ae.manon-lol2000.workers.dev/assets/res2/java2/1340.css?x=/hls/";
+    let url =
+        oscarApi() +
+        "/" +
+        endpoint.replace(/^\/+/,"");
 
-}
+    const u = new URL(url);
 
+    for(const [key,val] of Object.entries(params)){
 
-let hls = null;
-
-
-/*
- * إظهار التحميل
- */
-
-function showLoading(text) {
-
-    loadingText.innerHTML = text;
-
-    spinner.style.display = "block";
-
-    loading.classList.remove("hidden");
-
-}
-
-
-/*
- * إخفاء التحميل
- */
-
-function hideLoading() {
-
-    loading.classList.add("hidden");
-
-}
-
-
-/*
- * الخطأ
- */
-
-function showError(message) {
-
-    spinner.style.display = "none";
-
-    loadingText.innerHTML =
-        "⚠️ " + message;
-
-    status.innerHTML =
-        message;
-
-    status.classList.add("error");
-
-    loading.classList.remove("hidden");
-
-}
-
-
-/*
- * ========================================
- * تحميل Manifest يدويًا
- * ========================================
- *
- * نقوم بتحميل الـ Manifest من الـ Worker
- * ثم نبحث عن روابط HTTP.
- *
- * بعدها نحاول تحويلها إلى HTTPS.
- */
-
-async function loadManifestAndRewrite() {
-
-    showLoading(
-        "جاري تحميل قائمة البث..."
-    );
-
-
-    try {
-
-        const response =
-            await fetch(streamUrl, {
-                method: "GET",
-                cache: "no-store"
-            });
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " + response.status
-            );
-
+        if(
+            val !== undefined &&
+            val !== null &&
+            String(val) !== ""
+        ){
+            u.searchParams.set(key,String(val));
         }
 
+    }
 
-        let manifest =
-            await response.text();
+    const key = oscarKey();
+
+    if(key){
+        u.searchParams.set("key",key);
+    }
+
+    const response =
+        await fetch(
+            u.href,
+            {
+                cache:"no-store"
+            }
+        );
+
+    const text =
+        await response.text();
+
+    let data;
+
+    try{
+        data = JSON.parse(text);
+    }catch{
+        throw new Error(
+            "الـ API أعاد استجابة غير JSON"
+        );
+    }
+
+    if(!response.ok){
+
+        throw new Error(
+            "HTTP " +
+            response.status
+        );
+
+    }
+
+    return data;
+}
 
 
-        /*
-         * التأكد من أنه HLS
-         */
+/* =========================
+   فك استجابة Oscar
+========================= */
 
-        if (
-            !manifest.includes("#EXTM3U")
-        ) {
+function unwrap(data){
 
-            throw new Error(
-                "الاستجابة ليست HLS"
-            );
+    let d = data;
 
+    for(let i=0;i<6;i++){
+
+        if(
+            !d ||
+            typeof d !== "object" ||
+            Array.isArray(d)
+        ){
+            break;
         }
 
+        if(
+            d.upstream &&
+            typeof d.upstream === "object"
+        ){
+            d = d.upstream;
+            continue;
+        }
 
-        console.log(
-            "Original Manifest:",
-            manifest
-        );
+        if(
+            d.response &&
+            typeof d.response === "object"
+        ){
+            d = d.response;
+            continue;
+        }
+
+        if(
+            d.result &&
+            typeof d.result === "object"
+        ){
+            d = d.result;
+            continue;
+        }
+
+        if(
+            d.data &&
+            typeof d.data === "object"
+        ){
+            d = d.data;
+            continue;
+        }
+
+        break;
+    }
+
+    return d;
+}
 
 
-        /*
-         * ==================================
-         * تحويل HTTP إلى HTTPS
-         * ==================================
-         */
+function listOf(data){
 
-        manifest =
-            manifest.replace(
-                /http:\/\//gi,
-                "https://"
-            );
+    const root = unwrap(data);
+
+    if(Array.isArray(root)){
+        return root;
+    }
+
+    if(!root || typeof root !== "object"){
+        return [];
+    }
+
+    for(
+        const key of [
+            "items",
+            "results",
+            "list",
+            "data",
+            "channels",
+            "collections"
+        ]
+    ){
+
+        if(Array.isArray(root[key])){
+            return root[key];
+        }
+
+    }
+
+    for(
+        const value of Object.values(root)
+    ){
+
+        if(
+            Array.isArray(value) &&
+            value.some(
+                x =>
+                x &&
+                typeof x === "object"
+            )
+        ){
+            return value;
+        }
+
+    }
+
+    return [];
+}
 
 
-        console.log(
-            "Modified Manifest:",
-            manifest
-        );
+function detailOf(data){
+
+    const d = unwrap(data);
+
+    if(Array.isArray(d)){
+        return d[0] || {};
+    }
+
+    return d &&
+           typeof d === "object"
+        ? d
+        : {};
+}
 
 
-        /*
-         * ==================================
-         * إنشاء Blob
-         * ==================================
-         */
+/* =========================
+   بيانات القناة
+========================= */
 
-        const blob =
-            new Blob(
-                [manifest],
-                {
+function channelId(c){
+
+    return (
+        c.id ||
+        c.channel_id ||
+        c.item_id ||
+        ""
+    );
+
+}
+
+
+function channelTitle(c){
+
+    return (
+        c.name_ar ||
+        c.title_ar ||
+        c.channel_name ||
+        c.name ||
+        c.title ||
+        c.name_en ||
+        "قناة"
+    );
+
+}
+
+
+/* =========================
+   استخراج روابط البث
+========================= */
+
+function extractUrl(s){
+
+    if(typeof s === "string"){
+
+        return /^https?:\/\//i.test(s)
+            ? s
+            : "";
+
+    }
+
+    if(!s || typeof s !== "object"){
+        return "";
+    }
+
+    return (
+        s.stream_url ||
+        s.url ||
+        s.link ||
+        s.file ||
+        s.src ||
+        s.video ||
+        s.hls ||
+        s.m3u8 ||
+        s.deep_link ||
+        s.watch_url ||
+        ""
+    );
+
+}
+
+
+function extractStreams(raw){
+
+    const output = [];
+
+    const seen = new Set();
+
+
+    function add(
+        value,
+        parent={},
+        index=0
+    ){
+
+        if(!value){
+            return;
+        }
+
+        if(
+            typeof value === "string"
+        ){
+
+            const url =
+                extractUrl(value);
+
+            if(url && !seen.has(url)){
+
+                seen.add(url);
+
+                output.push({
+
+                    url:url,
+
+                    quality:
+                        parent.quality ||
+                        parent.resolution ||
+                        "LIVE",
+
+                    name:
+                        parent.name ||
+                        parent.server ||
+                        `سيرفر ${index+1}`,
+
                     type:
-                        "application/vnd.apple.mpegurl"
-                }
+                        parent.type ||
+                        "رابط مباشر"
+
+                });
+
+            }
+
+            return;
+        }
+
+
+        if(Array.isArray(value)){
+
+            value.forEach(
+                (x,i) =>
+                    add(x,parent,i)
             );
 
-
-        const blobUrl =
-            URL.createObjectURL(blob);
-
-
-        return blobUrl;
+            return;
+        }
 
 
-    } catch (error) {
+        if(
+            typeof value === "object"
+        ){
 
-        console.error(
-            "Manifest Error:",
-            error
+            const direct =
+                extractUrl(value);
+
+            if(direct){
+
+                const quality =
+                    value.quality ||
+                    value.resolution ||
+                    parent.quality ||
+                    "LIVE";
+
+                const name =
+                    value.name ||
+                    value.server ||
+                    value.label ||
+                    parent.name ||
+                    `سيرفر ${index+1}`;
+
+                if(!seen.has(direct)){
+
+                    seen.add(direct);
+
+                    output.push({
+
+                        url:direct,
+
+                        quality:String(
+                            quality
+                        ).replace(/p$/i,""),
+
+                        name:name,
+
+                        type:
+                            value.type ||
+                            parent.type ||
+                            "رابط مباشر"
+
+                    });
+
+                }
+
+            }
+
+
+            const nestedKeys = [
+
+                "links",
+                "items",
+                "sources",
+                "qualities",
+                "servers",
+                "videos",
+                "streams",
+                "watch_links",
+                "watchLinks"
+
+            ];
+
+
+            for(
+                const key of nestedKeys
+            ){
+
+                if(value[key]){
+
+                    add(
+                        value[key],
+                        {
+                            ...value,
+                            name:
+                                value.name ||
+                                value.server ||
+                                value.label
+                        },
+                        index
+                    );
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    /*
+     * نفس أنواع الحقول التي
+     * تتعامل معها الصفحة الأصلية.
+     */
+
+    const keys = [
+
+        "stream_links",
+        "streamLinks",
+        "streams",
+        "watch_links",
+        "watchLinks",
+        "watch",
+        "videos",
+        "servers",
+        "links",
+        "qualities",
+        "sources",
+        "stream"
+
+    ];
+
+
+    for(
+        const key of keys
+    ){
+
+        if(raw[key]){
+            add(
+                raw[key],
+                raw
+            );
+        }
+
+    }
+
+
+    /*
+     * إذا كانت نتيجة API نفسها
+     * تحتوي على رابط مباشر.
+     */
+
+    add(raw,raw);
+
+
+    return output;
+
+}
+
+
+/* =========================
+   جلب القنوات
+========================= */
+
+async function loadChannels(){
+
+    try{
+
+        channels = [];
+        streams = [];
+
+        resetCounters();
+
+        status(
+            "جاري جلب القنوات..."
         );
 
 
-        throw error;
+        /*
+         * نفس طلب الصفحة الأصلية
+         */
+
+        const [
+            collectionsResponse,
+            listResponse
+        ] = await Promise.all([
+
+            apiCall(
+                "channels.collections"
+            ),
+
+            apiCall(
+                "channels.list",
+                {
+                    page:1,
+                    limit:120
+                }
+            )
+
+        ]);
+
+
+        const collections =
+            listOf(
+                collectionsResponse
+            );
+
+        const listed =
+            listOf(
+                listResponse
+            );
+
+
+        /*
+         * دمج القنوات بدون تكرار
+         */
+
+        const map = new Map();
+
+
+        function addChannel(c){
+
+            if(
+                !c ||
+                typeof c !== "object"
+            ){
+                return;
+            }
+
+            const id =
+                channelId(c);
+
+            const key =
+                id ||
+                channelTitle(c);
+
+            if(!map.has(key)){
+                map.set(key,c);
+            }
+
+        }
+
+
+        collections.forEach(
+            group => {
+
+                const items =
+                    Array.isArray(
+                        group.channels
+                    )
+                    ? group.channels
+                    : (
+                        Array.isArray(
+                            group.items
+                        )
+                        ? group.items
+                        : []
+                    );
+
+                items.forEach(addChannel);
+
+            }
+        );
+
+
+        listed.forEach(addChannel);
+
+
+        channels =
+            Array.from(
+                map.values()
+            );
+
+
+        document.getElementById(
+            "total"
+        ).textContent =
+            channels.length;
+
+
+        renderRows();
+
+
+        status(
+            "تم جلب " +
+            channels.length +
+            " قناة. جاري استخراج روابط البث..."
+        );
+
+
+        /*
+         * جلب تفاصيل كل قناة
+         * للحصول على السيرفرات
+         */
+
+        for(
+            let i=0;
+            i<channels.length;
+            i++
+        ){
+
+            await loadChannelStreams(
+                channels[i],
+                i
+            );
+
+        }
+
+
+        document.getElementById(
+            "links"
+        ).textContent =
+            streams.length;
+
+
+        renderRows();
+
+
+        status(
+            "✅ تم استخراج " +
+            streams.length +
+            " رابط بث"
+        );
+
+
+    }catch(error){
+
+        console.error(error);
+
+        status(
+            "❌ " +
+            error.message
+        );
 
     }
 
 }
 
 
-/*
- * ========================================
- * تشغيل HLS
- * ========================================
- */
+/* =========================
+   تفاصيل قناة
+========================= */
 
-async function startPlayer() {
+async function loadChannelStreams(
+    channel,
+    channelIndex
+){
 
-    if (!streamUrl) {
+    const id =
+        channelId(channel);
 
-        showError(
-            "رابط البث غير موجود"
+    if(!id){
+        return;
+    }
+
+
+    try{
+
+        const response =
+            await apiCall(
+                "channels.show",
+                {
+                    id:id
+                }
+            );
+
+
+        const raw =
+            detailOf(response);
+
+
+        const channelStreams =
+            extractStreams(raw);
+
+
+        channelStreams.forEach(
+            stream => {
+
+                streams.push({
+
+                    channel:
+                        channelTitle(channel),
+
+                    channelIndex:
+                        channelIndex,
+
+                    quality:
+                        stream.quality,
+
+                    name:
+                        stream.name,
+
+                    type:
+                        stream.type,
+
+                    url:
+                        stream.url
+
+                });
+
+            }
+        );
+
+
+        updateRow(
+            channelIndex,
+            channelStreams
+        );
+
+
+    }catch(error){
+
+        updateChannelError(
+            channelIndex,
+            error.message
+        );
+
+    }
+
+}
+
+
+/* =========================
+   إنشاء الصفوف
+========================= */
+
+function renderRows(){
+
+    const tbody =
+        document.getElementById(
+            "results"
+        );
+
+    tbody.innerHTML = "";
+
+
+    if(!channels.length){
+
+        tbody.innerHTML = `
+        <tr>
+        <td colspan="8">
+        لا توجد قنوات
+        </td>
+        </tr>
+        `;
+
+        return;
+    }
+
+
+    channels.forEach(
+        (channel,index) => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+            row.id =
+                "channel-" +
+                index;
+
+
+            row.innerHTML = `
+
+<td>
+${index + 1}
+</td>
+
+<td>
+<b>
+${escapeHtml(
+    channelTitle(channel)
+)}
+</b>
+</td>
+
+<td class="quality">
+-
+</td>
+
+<td class="server">
+-
+</td>
+
+<td class="url">
+-
+</td>
+
+<td class="state wait">
+⏳ بانتظار الفحص
+</td>
+
+<td class="time">
+-
+</td>
+
+<td>
+<button
+class="secondary"
+onclick="checkChannel(${index})">
+فحص
+</button>
+</td>
+
+`;
+
+            tbody.appendChild(row);
+
+        }
+    );
+
+}
+
+
+/* =========================
+   تحديث صف القناة
+========================= */
+
+function updateRow(
+    channelIndex,
+    channelStreams
+){
+
+    const row =
+        document.getElementById(
+            "channel-" +
+            channelIndex
+        );
+
+    if(!row){
+        return;
+    }
+
+
+    if(!channelStreams.length){
+
+        row.querySelector(
+            ".state"
+        ).className =
+            "state bad";
+
+        row.querySelector(
+            ".state"
+        ).textContent =
+            "🔴 لا يوجد رابط";
+
+
+        row.querySelector(
+            ".quality"
+        ).textContent =
+            "-";
+
+
+        row.querySelector(
+            ".server"
+        ).textContent =
+            "-";
+
+
+        return;
+    }
+
+
+    /*
+     * نعرض أول رابط
+     * في صف القناة.
+     */
+
+    const s =
+        channelStreams[0];
+
+
+    row.querySelector(
+        ".quality"
+    ).textContent =
+        s.quality || "LIVE";
+
+
+    row.querySelector(
+        ".server"
+    ).textContent =
+        s.name || "-";
+
+
+    row.querySelector(
+        ".url"
+    ).textContent =
+        s.url;
+
+
+    row.querySelector(
+        ".state"
+    ).textContent =
+        "جاهز للفحص";
+
+
+    /*
+     * زر الفحص يصبح فحصاً
+     * لجميع روابط القناة.
+     */
+
+    row.querySelector(
+        "button"
+    ).onclick =
+        () => checkChannel(
+            channelIndex
+        );
+
+}
+
+
+/* =========================
+   فحص قناة
+========================= */
+
+async function checkChannel(
+    channelIndex
+){
+
+    const channel =
+        channels[channelIndex];
+
+    const channelStreams =
+        streams.filter(
+            s =>
+                s.channelIndex ===
+                channelIndex
+        );
+
+
+    if(!channelStreams.length){
+
+        await loadChannelStreams(
+            channel,
+            channelIndex
+        );
+
+    }
+
+
+    const list =
+        streams.filter(
+            s =>
+                s.channelIndex ===
+                channelIndex
+        );
+
+
+    if(!list.length){
+
+        updateChannelError(
+            channelIndex,
+            "لا توجد روابط"
         );
 
         return;
@@ -471,344 +1319,497 @@ async function startPlayer() {
     }
 
 
-    showLoading(
-        "جاري الاتصال بالبث..."
-    );
-
-
     /*
-     * ==================================
-     * HLS.js
-     * ==================================
+     * نفحص جميع الجودات
+     * ونستخدم أول رابط يعمل.
      */
 
-    if (Hls.isSupported()) {
+    const row =
+        document.getElementById(
+            "channel-" +
+            channelIndex
+        );
 
-        try {
+    const stateEl =
+        row.querySelector(
+            ".state"
+        );
 
-            /*
-             * تحميل الـManifest
-             * وتعديل روابط المقاطع
-             */
-
-            const manifestUrl =
-                await loadManifestAndRewrite();
-
-
-            /*
-             * إنشاء HLS
-             */
-
-            hls =
-                new Hls({
-
-                    enableWorker: true,
-
-                    liveSyncDurationCount: 3,
-
-                    liveMaxLatencyDurationCount: 6,
-
-                    maxBufferLength: 30,
-
-                    maxMaxBufferLength: 60,
-
-                    backBufferLength: 30,
-
-                    lowLatencyMode: false,
-
-                    manifestLoadingMaxRetry: 5,
-
-                    manifestLoadingRetryDelay: 1000,
-
-                    levelLoadingMaxRetry: 5,
-
-                    levelLoadingRetryDelay: 1000,
-
-                    fragLoadingMaxRetry: 5,
-
-                    fragLoadingRetryDelay: 1000
-
-                });
+    const timeEl =
+        row.querySelector(
+            ".time"
+        );
 
 
-            /*
-             * تحميل الـManifest المعدل
-             */
+    stateEl.className =
+        "state wait";
 
-            hls.loadSource(
-                manifestUrl
+    stateEl.textContent =
+        "⏳ فحص البث...";
+
+
+    for(
+        const stream of list
+    ){
+
+        const result =
+            await testHLS(
+                stream.url
             );
 
 
-            /*
-             * ربط الفيديو
-             */
+        if(result.ok){
 
-            hls.attachMedia(
-                video
+            stateEl.className =
+                "state good";
+
+            stateEl.textContent =
+                "🟢 يعمل";
+
+
+            row.querySelector(
+                ".quality"
+            ).textContent =
+                stream.quality ||
+                "LIVE";
+
+
+            row.querySelector(
+                ".server"
+            ).textContent =
+                stream.name ||
+                "-";
+
+
+            row.querySelector(
+                ".url"
+            ).textContent =
+                stream.url;
+
+
+            timeEl.textContent =
+                result.time +
+                " ms";
+
+
+            increment(
+                "working"
             );
 
 
-            /*
-             * Manifest جاهز
-             */
-
-            hls.on(
-                Hls.Events.MANIFEST_PARSED,
-                function () {
-
-                    console.log(
-                        "HLS Manifest Parsed"
-                    );
-
-
-                    status.innerHTML =
-                        "🟢 تم الاتصال بالبث";
-
-
-                    status.classList.remove(
-                        "error"
-                    );
-
-
-                    hideLoading();
-
-
-                    video.play().catch(
-                        function () {
-
-                            status.innerHTML =
-                                "🟢 البث جاهز - اضغط تشغيل";
-
-                        }
-                    );
-
-                }
-            );
-
-
-            /*
-             * أخطاء HLS
-             */
-
-            hls.on(
-                Hls.Events.ERROR,
-                function (
-                    event,
-                    data
-                ) {
-
-                    console.log(
-                        "HLS ERROR:",
-                        data
-                    );
-
-
-                    if (!data.fatal) {
-                        return;
-                    }
-
-
-                    /*
-                     * خطأ شبكة
-                     */
-
-                    if (
-                        data.type ===
-                        Hls.ErrorTypes.NETWORK_ERROR
-                    ) {
-
-                        showError(
-                            "تعذر تحميل مقاطع البث"
-                        );
-
-                        return;
-
-                    }
-
-
-                    /*
-                     * خطأ Media
-                     */
-
-                    if (
-                        data.type ===
-                        Hls.ErrorTypes.MEDIA_ERROR
-                    ) {
-
-                        status.innerHTML =
-                            "🔄 محاولة إصلاح الفيديو...";
-
-
-                        try {
-
-                            hls.recoverMediaError();
-
-                        } catch (e) {
-
-                            showError(
-                                "تعذر إصلاح الفيديو"
-                            );
-
-                        }
-
-                        return;
-
-                    }
-
-
-                    showError(
-                        "تعذر تشغيل البث"
-                    );
-
-                }
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "Player Error:",
-                error
-            );
-
-
-            showError(
-                "تعذر تحميل البث"
-            );
+            return;
 
         }
 
     }
 
 
-    /*
-     * Native HLS
-     */
+    stateEl.className =
+        "state bad";
 
-    else if (
-        video.canPlayType(
-            "application/vnd.apple.mpegurl"
-        )
-    ) {
-
-        video.src =
-            streamUrl;
+    stateEl.textContent =
+        "🔴 متوقف";
 
 
-        video.addEventListener(
-            "loadedmetadata",
-            function () {
+    timeEl.textContent =
+        "فشل التشغيل";
 
-                status.innerHTML =
-                    "🟢 تم الاتصال بالبث";
 
-                hideLoading();
+    increment(
+        "stopped"
+    );
 
-                video.play().catch(
-                    function () {}
+}
+
+
+/* =========================
+   فحص HLS فعلي
+========================= */
+
+function testHLS(url){
+
+    return new Promise(
+        resolve => {
+
+            const started =
+                performance.now();
+
+
+            const video =
+                document.createElement(
+                    "video"
                 );
 
-            },
-            {
-                once: true
+
+            video.muted = true;
+
+            video.playsInline = true;
+
+            video.setAttribute(
+                "playsinline",
+                ""
+            );
+
+            video.style.display =
+                "none";
+
+
+            document.body.appendChild(
+                video
+            );
+
+
+            let finished = false;
+
+            let hls = null;
+
+
+            function done(ok){
+
+                if(finished){
+                    return;
+                }
+
+                finished = true;
+
+
+                const time =
+                    Math.round(
+                        performance.now() -
+                        started
+                    );
+
+
+                if(hls){
+
+                    try{
+                        hls.destroy();
+                    }catch{}
+
+                }
+
+
+                video.pause();
+
+                video.removeAttribute(
+                    "src"
+                );
+
+                video.load();
+
+
+                setTimeout(
+                    () => video.remove(),
+                    50
+                );
+
+
+                resolve({
+                    ok:ok,
+                    time:time
+                });
+
             }
+
+
+            const timer =
+                setTimeout(
+                    () => done(false),
+                    10000
+                );
+
+
+            if(
+                video.canPlayType(
+                    "application/vnd.apple.mpegurl"
+                )
+            ){
+
+                video.src = url;
+
+
+                video.addEventListener(
+                    "loadedmetadata",
+                    () => {
+
+                        clearTimeout(
+                            timer
+                        );
+
+                        video.play()
+                            .then(
+                                () => done(true)
+                            )
+                            .catch(
+                                () => done(true)
+                            );
+
+                    },
+                    {
+                        once:true
+                    }
+                );
+
+
+                video.addEventListener(
+                    "error",
+                    () => {
+
+                        clearTimeout(
+                            timer
+                        );
+
+                        done(false);
+
+                    },
+                    {
+                        once:true
+                    }
+                );
+
+
+                return;
+            }
+
+
+            if(
+                window.Hls &&
+                Hls.isSupported()
+            ){
+
+                hls =
+                    new Hls({
+
+                        enableWorker:true,
+
+                        lowLatencyMode:true,
+
+                        manifestLoadingMaxRetry:1,
+
+                        levelLoadingMaxRetry:1
+
+                    });
+
+
+                hls.loadSource(
+                    url
+                );
+
+
+                hls.attachMedia(
+                    video
+                );
+
+
+                hls.on(
+                    Hls.Events.MANIFEST_PARSED,
+                    () => {
+
+                        clearTimeout(
+                            timer
+                        );
+
+                        /*
+                         * وصول الـmanifest بنجاح
+                         * يعني أن رابط HLS يستجيب.
+                         */
+
+                        done(true);
+
+                    }
+                );
+
+
+                hls.on(
+                    Hls.Events.ERROR,
+                    (event,data) => {
+
+                        if(
+                            data.fatal
+                        ){
+
+                            clearTimeout(
+                                timer
+                            );
+
+                            done(false);
+
+                        }
+
+                    }
+                );
+
+
+                return;
+            }
+
+
+            clearTimeout(
+                timer
+            );
+
+            done(false);
+
+        }
+    );
+
+}
+
+
+/* =========================
+   فحص جميع القنوات
+========================= */
+
+async function checkAll(){
+
+    if(!channels.length){
+
+        status(
+            "جلب القنوات أولاً"
+        );
+
+        return;
+    }
+
+
+    document.getElementById(
+        "working"
+    ).textContent = "0";
+
+    document.getElementById(
+        "stopped"
+    ).textContent = "0";
+
+
+    for(
+        let i=0;
+        i<channels.length;
+        i++
+    ){
+
+        status(
+            "فحص القناة " +
+            (i+1) +
+            " من " +
+            channels.length
         );
 
 
-        video.addEventListener(
-            "error",
-            function () {
-
-                showError(
-                    "تعذر تشغيل رابط البث"
-                );
-
-            },
-            {
-                once: true
-            }
-        );
+        await checkChannel(i);
 
     }
 
 
-    else {
+    status(
+        "✅ انتهى فحص جميع القنوات"
+    );
 
-        showError(
-            "المتصفح لا يدعم تشغيل HLS"
-        );
+}
+
+
+/* =========================
+   جلب وفحص
+========================= */
+
+async function loadAndCheck(){
+
+    await loadChannels();
+
+    if(channels.length){
+
+        await checkAll();
 
     }
 
 }
 
 
-/*
- * عند تشغيل الفيديو
- */
+/* =========================
+   أدوات
+========================= */
 
-video.addEventListener(
-    "playing",
-    function () {
+function updateChannelError(
+    index,
+    message
+){
 
-        hideLoading();
-
-        status.classList.remove(
-            "error"
+    const row =
+        document.getElementById(
+            "channel-" +
+            index
         );
 
-        status.innerHTML =
-            "🟢 البث يعمل الآن";
-
+    if(!row){
+        return;
     }
-);
 
 
-/*
- * عند Buffer
- */
-
-video.addEventListener(
-    "waiting",
-    function () {
-
-        showLoading(
-            "جاري تحميل البث..."
+    const stateEl =
+        row.querySelector(
+            ".state"
         );
 
-    }
-);
+
+    stateEl.className =
+        "state bad";
+
+    stateEl.textContent =
+        "🔴 " + message;
 
 
-/*
- * بدء التشغيل
- */
+    increment(
+        "stopped"
+    );
 
-startPlayer();
+}
 
 
-/*
- * تنظيف
- */
+function increment(id){
 
-window.addEventListener(
-    "beforeunload",
-    function () {
+    const el =
+        document.getElementById(id);
 
-        if (hls) {
+    el.textContent =
+        Number(
+            el.textContent
+        ) + 1;
 
-            hls.destroy();
+}
 
-            hls = null;
 
-        }
+function resetCounters(){
 
-    }
-);
+    document.getElementById(
+        "total"
+    ).textContent = "0";
+
+    document.getElementById(
+        "links"
+    ).textContent = "0";
+
+    document.getElementById(
+        "working"
+    ).textContent = "0";
+
+    document.getElementById(
+        "stopped"
+    ).textContent = "0";
+
+}
+
+
+function escapeHtml(text){
+
+    return String(text)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
 
 </script>
 
 </body>
-
 </html>
